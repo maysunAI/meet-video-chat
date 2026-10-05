@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="t00-update" content="own">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Video Meeting - no sign-up needed</title>
+<style>
+:root{--bg:#10151c;--panel:#1a222d;--line:#2b3644;--fg:#e8edf3;--sub:#93a1b3;--pri:#2f80ed;--red:#e5484d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+button,select,input{font:inherit;color:var(--fg)}
+button{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer}
+button:hover{border-color:#44566c}
+button.pri{background:var(--pri);border-color:var(--pri);color:#fff}
+button.red{background:var(--red);border-color:var(--red);color:#fff}
+button.on{background:#27405f;border-color:var(--pri)}
+button.off{background:#4a2326;border-color:var(--red)}
+input,select{background:#0d1218;border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+.hidden{display:none!important}
+a{color:#7cc4ff}
+.page{max-width:560px;margin:0 auto;padding:24px 16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
+h1{font-size:1.4rem;margin:8px 0}h2{font-size:1.1rem;margin:0 0 8px}
+.sub{color:var(--sub);font-size:.9rem}
+.warn{color:#ffb454}
+video{background:#000;width:100%;border-radius:10px;display:block}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>*{flex:0 0 auto}
+#meet{position:fixed;inset:0;display:flex;flex-direction:column}
+#top{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#banner{background:#5a3b00;color:#ffd58a;padding:6px 12px;font-size:.9rem;text-align:center}
+#main{flex:1;display:flex;min-height:0;position:relative}
+#stage{flex:1;min-width:0;display:flex;flex-direction:column;padding:8px;gap:8px;position:relative}
+#focus{flex:1;min-height:0;display:flex}
+#focus .tile{flex:1}
+#grid{display:grid;gap:8px;flex:1;min-height:0;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));grid-auto-rows:minmax(140px,1fr)}
+#grid.strip{flex:0 0 130px;grid-auto-flow:column;grid-auto-columns:200px;grid-template-columns:none;grid-auto-rows:100%;overflow-x:auto}
+.tile{position:relative;background:#000;border-radius:12px;overflow:hidden;min-height:0}
+.tile video{width:100%;height:100%;object-fit:contain;border-radius:0}
+.hidevid .tile video{visibility:hidden}
+.hidevid .tile .av{display:flex!important}
+.tile .nm{position:absolute;left:8px;bottom:6px;background:rgba(0,0,0,.6);padding:2px 8px;border-radius:8px;font-size:.85rem;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .av{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.4rem;background:#1c2530}
+.tile .st{position:absolute;right:8px;top:6px;font-size:1.1rem}
+#cap{position:absolute;left:12px;right:12px;bottom:12px;text-align:center;pointer-events:none}
+#cap span{background:rgba(0,0,0,.72);padding:4px 10px;border-radius:8px;display:inline-block;max-width:90%}
+#side{width:330px;border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--bg)}
+#tabs{display:flex;border-bottom:1px solid var(--line)}
+#tabs button{flex:1;border:0;border-radius:0;background:none;padding:8px 4px}
+#tabs button.on{background:#27405f}
+.pane{flex:1;overflow:auto;padding:8px;min-height:0}
+#chatbox{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}
+.msg{margin:6px 0;word-break:break-word}.msg b{color:#8fb8ff}.msg i{color:var(--sub);font-style:normal;font-size:.8rem}
+#bar{display:flex;gap:8px;justify-content:center;padding:10px;border-top:1px solid var(--line);flex-wrap:wrap;position:relative}
+#float{position:fixed;left:0;right:0;bottom:90px;pointer-events:none;height:0}
+#float span{position:absolute;font-size:2.2rem;animation:up 2.5s ease-out forwards}
+@keyframes up{from{transform:translateY(0);opacity:1}to{transform:translateY(-200px);opacity:0}}
+#emo{position:absolute;bottom:64px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px;display:flex;gap:4px;z-index:6}
+@media(max-width:800px){#side{position:absolute;right:0;top:0;bottom:0;width:86%;z-index:5}#grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}}
+#wbWrap{position:absolute;inset:8px;z-index:4;background:#f7f7f2;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+#wbWrap canvas{flex:1;min-height:0;width:100%;touch-action:none;cursor:crosshair}
+.dtools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 8px;background:rgba(20,28,38,.92);color:#fff}
+.dtools .sw{width:24px;height:24px;border-radius:50%;border:2px solid #fff;padding:0;min-width:0}
+.dtools .sw.on{outline:3px solid #6aa7ff}
+#annBar{position:absolute;left:50%;transform:translateX(-50%);top:10px;z-index:5;border-radius:12px}
+.annCv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;pointer-events:none;z-index:2}
+.annCv.on{pointer-events:auto;cursor:crosshair}
+</style>
+</head>
+<body>
+
+<div id="home" class="page hidden">
+  <h1>Video Meeting</h1>
+  <div class="sub">Joining needs no registration: open the link, type a nickname and you are in. Creating a meeting requires login. Up to 4 people; video and audio go directly between browsers, not through the server.</div>
+  <div class="card" id="loginCard"><h2>Log in (to create meetings)</h2>
+    <input id="lgUser" placeholder="Username" autocomplete="username"><input id="lgPass" type="password" placeholder="Password" autocomplete="current-password" style="margin-top:8px">
+    <div style="margin-top:8px"><button class="pri" id="btnLogin">Log in</button></div><div class="sub" id="lgMsg" style="margin-top:6px"></div>
+    <div class="sub">Log in with your account. Without an account you can only join meetings, not create them.</div></div>
+  <div class="card hidden" id="newCard"><h2>New meeting</h2><div class="sub" style="margin:0 0 8px">Logged in as: <b id="whoName"></b> <button id="btnLogout" style="padding:2px 8px">Log out</button></div><button class="pri" id="btnNew">➕ Create a new meeting</button>
+    <div class="sub" style="margin-top:8px">The creator is the host (tied to your account) and can admit people from the waiting room, mute others, remove people and lock the meeting.</div>
+    <div id="myRooms" class="sub" style="margin-top:8px"></div></div>
+  <div class="card"><h2>Join a meeting</h2><input id="joinId" placeholder="Paste the meeting link or room ID"><div style="margin-top:8px"><button id="btnJoin">Join</button></div></div>
+  <div class="card sub">⚠️ Honest note: browsers first try to connect directly (public STUN); if that fails, this site automatically falls back to a TURN relay. A few networks (corporate firewalls, some mobile data / symmetric NAT, connections between countries) may still fail, and then you cannot see the other person. Phone browsers can mostly not share the screen, they can only watch.</div>
+</div>
+
+<div id="pre" class="page hidden">
+  <h1>Ready to join</h1>
+  <div class="card"><video id="preVideo" autoplay muted playsinline></video>
+    <div id="preMsg" class="sub warn" style="margin-top:6px"></div>
+    <div style="margin-top:8px"><div class="sub">Nickname</div><input id="nick" maxlength="20" placeholder="Your name"></div>
+    <div class="row" style="margin-top:8px"><div style="flex:1;min-width:140px"><div class="sub">Camera</div><select id="selCam"></select></div><div style="flex:1;min-width:140px"><div class="sub">Microphone</div><select id="selMic"></select></div></div>
+    <div class="row" style="margin-top:10px"><button id="preMic" class="on">🎤 Mic on</button><button id="preCam" class="on">📷 Camera on</button></div>
+  </div>
+  <button class="pri" id="btnEnter" style="width:100%">Enter meeting</button>
+  <div id="roomInfo" class="sub" style="margin-top:8px"></div>
+</div>
+
+<div id="wait" class="page hidden"><h1>Waiting for the host to let you in…</h1><div class="card" id="waitMsg">The host has been notified. Please wait; you will enter automatically once admitted.</div><button id="waitCancel">Cancel</button></div>
+
+<div id="end" class="page hidden"><h1 id="endTitle">You left the meeting</h1><div class="card"><div id="endMsg" class="sub"></div>
+  <div class="row" style="margin-top:8px"><button id="endDl" class="pri hidden">⬇ Download transcript (md)</button><button id="endHome">Back to home</button></div></div></div>
+
+<div id="meet" class="hidden">
+  <div id="top"><b id="mTitle">Meeting</b><span class="sub" id="mCount"></span><span style="flex:1"></span>
+    <button id="btnCopy">🔗 Copy meeting link</button><button id="btnView">View: Gallery</button><button id="btnSide">💬 Sidebar</button></div>
+  <div id="banner" class="hidden"></div>
+  <div id="main">
+    <div id="stage"><div id="focus" class="hidden"></div><div id="grid"></div><div id="cap" class="hidden"><span id="capTxt"></span></div></div>
+    <div id="side">
+      <div id="tabs"><button data-p="chat" class="on">Chat</button><button data-p="ppl">People<span id="waitDot"></span></button><button data-p="rec">Transcript</button><button data-p="set">Settings</button></div>
+      <div class="pane" id="p-chat"></div>
+      <div class="pane hidden" id="p-ppl"></div>
+      <div class="pane hidden" id="p-rec"></div>
+      <div class="pane hidden" id="p-set"></div>
+      <div id="chatbox"><input id="chatIn" maxlength="1000" placeholder="Type a message, press Enter to send"><button id="chatSend">Send</button></div>
+    </div>
+  </div>
+  <div id="bar">
+    <button id="bMic">🎤 Mic</button><button id="bCam">📷 Camera</button><button id="bShare">🖥 Share screen</button><button id="bHide">🙈 Hide video</button><button id="bEcho">🔇 Echo?</button>
+    <button id="bHand">✋ Raise hand</button><button id="bEmo">😀 Emoji</button><button id="bCap">📝 Start captions</button><button id="bWb">📋 Whiteboard</button><button id="bFile">📎 Send file</button><button id="bAnn" class="hidden">✏ Annotate shared screen</button>
+    <button id="bLock" class="hidden">🔒 Lock meeting</button><button id="bLeave" class="red">Leave</button>
+    <div id="emo" class="hidden"></div>
+  </div>
+  <div id="float"></div>
+</div>
+
+<script src="updater.js?v=2" data-url="api/version"></script>
+<script src="filexfer.js?v=1"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const el = (t, p = {}, ...k) => { const e = document.createElement(t); Object.assign(e, p); k.flat().forEach((x) => e.append(x)); return e; };
+const show = (id) => ['home', 'pre', 'wait', 'end', 'meet'].forEach((x) => $('#' + x).classList.toggle('hidden', x !== id));
+const BASE = location.pathname.replace(/[^/]*$/, '').replace(/(en|ja)\/$/, ''); // en/ja pages live in a subfolder but share the same API root
+const T = (s) => (window.SRV_TR && window.SRV_TR[s]) || s; // translate server messages in the en/ja builds
+const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const hhmmss = (t) => new Date(t).toTimeString().slice(0, 8);
+
+const S = { remoteVol: 1, guard: false, headphones: false, room: null, hostKey: null, name: '', id: null, host: false, locked: false, ws: null, local: null, screen: null, mic: true, cam: true, hand: false,
+  peers: new Map(), view: 'gallery', transcript: [], capOn: false, rec: null, waiting: [], inMeeting: false };
+
+function route() {
+  if (S.inMeeting || !$('#wait').classList.contains('hidden')) return;
+  const m = location.hash.match(/^#\/([a-f0-9]{8})$/);
+  if (!m) { show('home'); stopPreview(); return; }
+  S.room = m[1]; S.hostKey = lsGet('meet_host_' + S.room); startPreview();
+}
+addEventListener('hashchange', route);
+const api = (u, o = {}) => fetch(BASE + u, { ...o, headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'meet' } }).then((r) => r.json().then((j) => ({ s: r.status, ...j })).catch(() => ({ s: r.status })));
+async function refreshAuth() {
+  const me = await api('api/me'); const u = me.user;
+  $('#loginCard').classList.toggle('hidden', !!u); $('#newCard').classList.toggle('hidden', !u);
+  if (u) { $('#whoName').textContent = u.username; const mr = await api('api/my-rooms'); const l = mr.rooms || [];
+    $('#myRooms').textContent = l.length ? 'Your active meetings: ' : ''; l.forEach((r) => $('#myRooms').append(' ', el('a', { href: '#/' + r.id, textContent: r.id + '(' + r.people + ' in call)' }))); }
+}
+$('#btnLogin').onclick = async () => { $('#lgMsg').textContent = 'Logging in…'; const r = await api('api/login', { method: 'POST', body: JSON.stringify({ username: $('#lgUser').value, password: $('#lgPass').value }) }); $('#lgMsg').textContent = r.ok ? '' : T(r.error || 'Login failed'); $('#lgPass').value = ''; if (r.ok) refreshAuth(); };
+$('#btnLogout').onclick = async () => { await api('api/logout', { method: 'POST', body: '{}' }); refreshAuth(); };
+refreshAuth();
+$('#btnNew').onclick = async () => {
+  const r = await api('api/create', { method: 'POST', body: '{}' });
+  if (r.s === 401) { refreshAuth(); }
+  if (!r.room) { alert(T(r.error || 'Could not create the meeting')); return; }
+  lsSet('meet_host_' + r.room, r.hostKey); location.hash = '#/' + r.room;
+};
+$('#btnJoin').onclick = () => { const m = $('#joinId').value.match(/([a-f0-9]{8})\s*$/i); if (!m) { alert('No room ID found (8 characters)'); return; } location.hash = '#/' + m[1].toLowerCase(); };
+
+let preStream = null;
+const audioC = (id) => Object.assign({ echoCancellation: { ideal: true }, noiseSuppression: { ideal: true }, autoGainControl: { ideal: true }, channelCount: { ideal: 1 }, voiceIsolation: true }, id ? { deviceId: { exact: id } } : {});
+const videoC = (id) => Object.assign({ width: { ideal: 960 }, height: { ideal: 540 }, frameRate: { ideal: 24, max: 30 } }, id ? { deviceId: { exact: id } } : {});
+async function getMedia(audioId, videoId) {
+  const a = audioC(audioId);
+  const v = videoC(videoId);
+  try { return await navigator.mediaDevices.getUserMedia({ audio: a, video: v }); } catch (e1) {
+    try { return await navigator.mediaDevices.getUserMedia({ video: v }); } catch (e2) { return await navigator.mediaDevices.getUserMedia({ audio: a }); }
+  }
+}
+async function fillDevices() {
+  const ds = await navigator.mediaDevices.enumerateDevices();
+  for (const [sel, kind] of [[$('#selCam'), 'videoinput'], [$('#selMic'), 'audioinput']]) {
+    const cur = sel.value; sel.replaceChildren();
+    ds.filter((d) => d.kind === kind).forEach((d, i) => sel.append(el('option', { value: d.deviceId, textContent: d.label || (kind === 'videoinput' ? 'Camera' : 'Microphone') + (i + 1) })));
+    if (cur) sel.value = cur;
+  }
+}
+async function startPreview() {
+  show('pre'); $('#nick').value = lsGet('meet_nick') || ''; $('#roomInfo').textContent = 'Meeting ID ' + S.room + (S.hostKey ? ' (you are the host of this meeting)' : '');
+  const info = await fetch(BASE + 'api/room/' + S.room).then((r) => r.json()).catch(() => ({}));
+  if (!info.exists) { $('#preMsg').textContent = 'This meeting does not exist or has ended.'; $('#btnEnter').disabled = true; return; }
+  loadIce(S.room);
+  $('#btnEnter').disabled = false; $('#preMsg').textContent = info.locked && !S.hostKey ? 'The host has locked this meeting; you may not be able to join.' : '';
+  await openPre();
+}
+async function openPre() {
+  stopPreview();
+  try { preStream = await getMedia($('#selMic').value || null, $('#selCam').value || null); $('#preVideo').srcObject = preStream; await fillDevices(); }
+  catch (e) { $('#preMsg').textContent = 'Cannot open camera/microphone: ' + e.message + ' (you can skip it for now and turn it on after entering; https and browser permission are required)'; }
+  syncPreBtns();
+}
+function stopPreview() { if (preStream) { preStream.getTracks().forEach((t) => t.stop()); preStream = null; } }
+function syncPreBtns() {
+  $('#preMic').className = S.mic ? 'on' : 'off'; $('#preMic').textContent = S.mic ? '🎤 Mic on' : '🎤 Mic off';
+  $('#preCam').className = S.cam ? 'on' : 'off'; $('#preCam').textContent = S.cam ? '📷 Camera on' : '📷 Camera off';
+  if (preStream) { preStream.getAudioTracks().forEach((t) => { t.enabled = S.mic; }); preStream.getVideoTracks().forEach((t) => { t.enabled = S.cam; }); }
+}
+$('#preMic').onclick = () => { S.mic = !S.mic; syncPreBtns(); };
+$('#preCam').onclick = () => { S.cam = !S.cam; syncPreBtns(); };
+$('#selCam').onchange = openPre; $('#selMic').onchange = openPre;
+
+$('#btnEnter').onclick = () => {
+  S.name = $('#nick').value.trim().slice(0, 20) || 'Guest'; lsSet('meet_nick', S.name);
+  S.local = preStream || new MediaStream(); preStream = null;
+  S.local.getAudioTracks().forEach((t) => { t.enabled = S.mic; }); S.local.getVideoTracks().forEach((t) => { t.enabled = S.cam; });
+  connect();
+};
+function connect() {
+  const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + BASE + 'ws'); S.ws = ws;
+  ws.onopen = () => ws.send(JSON.stringify({ t: 'join', room: S.room, name: S.name, hostKey: S.hostKey }));
+  ws.onmessage = (e) => onMsg(JSON.parse(e.data));
+  ws.onclose = () => { if (S.ws === ws && (S.inMeeting || !$('#wait').classList.contains('hidden'))) endMeeting('Disconnected', 'The connection to the server was lost. Refresh the page to re-enter.'); };
+}
+const sendWs = (o) => { if (S.ws && S.ws.readyState === 1) S.ws.send(JSON.stringify(o)); };
+function onMsg(m) {
+  switch (m.t) {
+    case 'error': { const ws = S.ws; S.ws = null; stopLocal(); S.local = null; try { ws.close(); } catch (e) {} S.inMeeting = false; show('end'); $('#endTitle').textContent = 'Could not join'; $('#endMsg').textContent = T(m.msg); $('#endDl').classList.add('hidden'); break; }
+    case 'wait': show('wait'); break;
+    case 'wait-nohost': $('#waitMsg').textContent = 'The host is not in the meeting right now; wait for the host to return and admit you.'; break;
+    case 'joined': S.id = m.id; S.host = m.host; S.locked = m.locked; S.inMeeting = true; enterMeet(); m.peers.forEach((p) => startPC(addPeer(p))); announce(); renderAll(); break;
+    case 'peer-join': addPeer(m.peer); announce(); sysMsg(m.peer.name + ' joined the meeting'); renderAll(); break;
+    case 'peer-leave': { const p = S.peers.get(m.id); if (p) { sysMsg(p.name + ' left the meeting'); closePeer(p); S.peers.delete(m.id); tuneSenders(); renderAll(); } break; }
+    case 'sig': handleSig(m.from, m.data); break;
+    case 'media': { const p = S.peers.get(m.id); if (p) { p.camSid = m.cam; p.screenSid = m.screen; renderAll(); } break; }
+    case 'state': { const p = S.peers.get(m.id); if (p) { ['mic', 'cam', 'hand'].forEach((k) => { if (k in m) p[k] = m[k]; }); renderAll(); } break; }
+    case 'chat': addChat(m.name, m.text, m.ts, m.from === S.id); break;
+    case 'draw': Board.recv(m); break;
+    case 'draw-sync': Board.sync(m.strokes || []); break;
+    case 'cap': S.transcript.push({ ts: m.ts, name: m.name, text: m.text }); showCap(m.name + ': ' + m.text); renderRec(); updBanner(m.name); break;
+    case 'react': floatEmoji(m.emoji); break;
+    case 'waiting': { S.waiting = m.list; renderPpl(); $('#waitDot').textContent = m.list.length ? ' 🔴' + m.list.length : ''; if (m.list.length) sysMsg('Waiting room: ' + m.list.map((x) => x.name).join(', ') + ' (admit them on the People tab)'); break; }
+    case 'force-mute': S.mic = false; applyTracks(); sendWs({ t: 'state', mic: false }); sysMsg('The host muted you'); renderAll(); break;
+    case 'kicked': endMeeting('The host removed you from the meeting', ' '); break;
+    case 'locked': S.locked = m.on; $('#bLock').textContent = S.locked ? '🔓 Unlock meeting' : '🔒 Lock meeting'; sysMsg(S.locked ? 'The host locked the meeting; no new people can join' : 'The host unlocked the meeting'); break;
+    case 'notice': sysMsg(T(m.msg)); break;
+  }
+}
+
+let ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+const loadIce = (room) => fetch(BASE + 'api/ice' + (room ? '?room=' + encodeURIComponent(room) : '')).then((r) => r.json()).then((j) => { ICE = j; }).catch(() => {});
+loadIce();
+function addPeer(p) {
+  let pe = S.peers.get(p.id);
+  if (!pe) { pe = { id: p.id, name: p.name, host: p.host, mic: p.mic !== false, cam: p.cam !== false, hand: !!p.hand, pc: null, streams: new Map(), camSid: null, screenSid: null, making: false, ignore: false, polite: S.id < p.id, state: 'new', screenSenders: [] }; S.peers.set(p.id, pe); }
+  return pe;
+}
+function startPC(pe) {
+  if (pe.pc) return pe.pc;
+  const pc = new RTCPeerConnection(ICE); pe.pc = pc; if (window.FileXfer) window.FileXfer.attach(pe, pc);
+  S.local.getTracks().forEach((t) => pc.addTrack(t, S.local));
+  if (S.screen) S.screen.getTracks().forEach((t) => pe.screenSenders.push(pc.addTrack(t, S.screen)));
+  pc.onicecandidate = (e) => { if (e.candidate) sendWs({ t: 'sig', to: pe.id, data: { cand: e.candidate } }); };
+  pc.onnegotiationneeded = async () => { try { pe.making = true; await pc.setLocalDescription(); sendWs({ t: 'sig', to: pe.id, data: { desc: pc.localDescription } }); } catch (e) { console.warn(e); } finally { pe.making = false; } };
+  pc.ontrack = (e) => { const s = e.streams[0]; if (!s) return; pe.streams.set(s.id, s); s.onremovetrack = () => { if (!s.getTracks().length) { pe.streams.delete(s.id); renderAll(); } }; renderAll(); };
+  pc.onconnectionstatechange = () => { pe.state = pc.connectionState; if (pe.state === 'connected') tuneSenders(); renderAll(); };
+  return pc;
+}
+async function handleSig(from, data) {
+  const pe = S.peers.get(from); if (!pe) return; const pc = startPC(pe);
+  try {
+    if (data.desc) {
+      const collision = data.desc.type === 'offer' && (pe.making || pc.signalingState !== 'stable');
+      pe.ignore = !pe.polite && collision; if (pe.ignore) return;
+      await pc.setRemoteDescription(data.desc);
+      if (data.desc.type === 'offer') { await pc.setLocalDescription(); sendWs({ t: 'sig', to: from, data: { desc: pc.localDescription } }); }
+    } else if (data.cand) { try { await pc.addIceCandidate(data.cand); } catch (e) { if (!pe.ignore) console.warn(e); } }
+  } catch (e) { console.warn('sig', e); }
+}
+function closePeer(pe) { try { pe.pc && pe.pc.close(); } catch (e) {} }
+function announce() { sendWs({ t: 'media', cam: S.local.id, screen: S.screen ? S.screen.id : null }); sendWs({ t: 'state', mic: S.mic, cam: S.cam }); }
+function applyTracks() { S.local.getAudioTracks().forEach((t) => { t.enabled = S.mic && !echoGate; }); S.local.getVideoTracks().forEach((t) => { t.enabled = S.cam; }); }
+
+
+let echoGate = false, actx = null, lAn = null, lSrc = null; const rAn = new Map(); const hist = []; let gateHold = 0, echoStrikes = 0, echoRatio = 0.15;
+const rms = (an, buf) => { an.getFloatTimeDomainData(buf); let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i]; return Math.sqrt(sum / buf.length); };
+function guardSetup() {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume().catch(() => {});
+    const at = S.local && S.local.getAudioTracks()[0];
+    if (at && (!lSrc || lSrc.t !== at.id)) { lSrc = { t: at.id, n: actx.createMediaStreamSource(new MediaStream([at])) }; lAn = actx.createAnalyser(); lAn.fftSize = 1024; lSrc.n.connect(lAn); }
+    const live = new Set();
+    S.peers.forEach((pe) => pe.streams.forEach((st) => { if (!st.getAudioTracks().length) return; live.add(st.id); if (rAn.has(st.id)) return; const an = actx.createAnalyser(); an.fftSize = 1024; actx.createMediaStreamSource(st).connect(an); rAn.set(st.id, an); }));
+    rAn.forEach((v, k) => { if (!live.has(k)) rAn.delete(k); });
+  } catch (e) { console.warn('guard', e); }
+}
+function guardTick() {
+  if (!S.inMeeting || !S.local) return;
+  guardSetup(); if (!lAn) return;
+  const buf = new Float32Array(1024); const ll = rms(lAn, buf); let rl = 0; rAn.forEach((an) => { rl = Math.max(rl, rms(an, buf)); });
+  hist.push([rl, ll]); if (hist.length > 40) hist.shift();
+  const now = Date.now();
+  if (S.guard) {
+    const talking = rl > 0.015 && ll < Math.max(0.04, rl * echoRatio * 3);
+    if (talking) gateHold = now + 350;
+    const g = S.mic && now < gateHold;
+    if (g !== echoGate) { echoGate = g; applyTracks(); }
+  } else if (echoGate) { echoGate = false; applyTracks(); }
+  if (now - (guardTick.t || 0) > 1000 && hist.length >= 30 && !S.guard && !S.headphones && S.mic) {
+    guardTick.t = now;
+    const act = hist.filter((h) => h[0] > 0.02).length; if (act >= 12) {
+      const xs = hist.map((h) => h[0]), ys = hist.map((h) => h[1]); const mx = xs.reduce((a, b) => a + b) / xs.length, my = ys.reduce((a, b) => a + b) / ys.length;
+      let cxy = 0, cx = 0, cy = 0; for (let i = 0; i < xs.length; i++) { cxy += (xs[i] - mx) * (ys[i] - my); cx += (xs[i] - mx) ** 2; cy += (ys[i] - my) ** 2; }
+      const corr = cx && cy ? cxy / Math.sqrt(cx * cy) : 0;
+      if (corr > 0.6 && my > 0.008) { if (++echoStrikes >= 2) { setGuard(true, true); echoStrikes = 0; } } else echoStrikes = Math.max(0, echoStrikes - 1);
+      if (corr > 0.6 && mx > 0) echoRatio = Math.min(0.5, Math.max(0.05, my / mx));
+    }
+  }
+}
+function setGuard(on, auto) {
+  S.guard = on; $('#bEcho').className = on ? 'on' : ''; $('#bEcho').textContent = on ? '🔇 Echo guard: on' : '🔇 Echo?';
+  if (on) { sysMsg(auto ? 'Possible echo detected: Echo guard was turned on automatically. Your microphone is lowered while others are speaking. Headphones work best; click Echo guard in the bottom bar to turn it off.' : 'Echo guard is on: your microphone is lowered while others are speaking. Headphones work best.'); reapplyAudio(); }
+  else { echoGate = false; applyTracks(); sysMsg('Echo guard is off'); }
+}
+async function reapplyAudio() {
+  try {
+    const at = S.local.getAudioTracks()[0]; if (!at) return;
+    await at.applyConstraints({ echoCancellation: true, noiseSuppression: true, autoGainControl: true }).catch(() => {});
+    const st = at.getSettings ? at.getSettings() : {};
+    if (st.echoCancellation === false) { const ns = await navigator.mediaDevices.getUserMedia({ audio: audioC(st.deviceId) }); const nt = ns.getAudioTracks()[0]; nt.enabled = S.mic && !echoGate; S.peers.forEach((pe) => { if (!pe.pc) return; const sd = pe.pc.getSenders().find((x) => x.track && x.track.id === at.id); if (sd) sd.replaceTrack(nt); }); S.local.removeTrack(at); at.stop(); S.local.addTrack(nt); lSrc = null; }
+  } catch (e) { console.warn('reapply', e); }
+}
+const HP_RE = /headphone|headset|airpods|earbuds|earphone|buds|耳机|耳麦|イヤホン|ヘッドホン|ヘッドセット/i;
+async function detectHeadphones() {
+  try { const ds = await navigator.mediaDevices.enumerateDevices(); S.headphones = ds.some((d) => d.kind === 'audiooutput' && HP_RE.test(d.label || '')); } catch (e) {}
+}
+$('#bEcho').onclick = () => setGuard(!S.guard, false);
+setInterval(guardTick, 100);
+if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', detectHeadphones);
+
+function tuneSenders() {
+  const n = Math.max(1, S.peers.size); const vb = n <= 1 ? 900e3 : n === 2 ? 450e3 : 280e3, scale = n >= 3 ? 1.5 : 1;
+  S.peers.forEach((pe) => { if (!pe.pc) return; pe.pc.getSenders().forEach((sd) => {
+    if (!sd.track) return; let p; try { p = sd.getParameters(); } catch (e) { return; } if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+    const e0 = p.encodings[0];
+    if (sd.track.kind === 'audio') e0.maxBitrate = 32e3;
+    else if (S.screen && S.screen.getVideoTracks().includes(sd.track)) { e0.maxBitrate = 1200e3; e0.maxFramerate = 15; try { sd.track.contentHint = 'detail'; } catch (e) {} }
+    else { e0.maxBitrate = vb; e0.maxFramerate = 24; e0.scaleResolutionDownBy = scale; }
+    sd.setParameters(p).catch(() => {});
+  }); });
+}
+
+function enterMeet() {
+  show('meet'); $('#mTitle').textContent = 'Meeting ' + S.room; $('#bLock').classList.toggle('hidden', !S.host); $('#bLock').textContent = S.locked ? '🔓 Unlock meeting' : '🔒 Lock meeting';
+  if (!navigator.mediaDevices.getDisplayMedia) $('#bShare').classList.add('hidden');
+  if (!(window.SpeechRecognition || window.webkitSpeechRecognition)) $('#bCap').title = 'Live captions are not supported in this browser (use Chrome/Edge on a computer)';
+  buildSettings(); renderRec(); detectHeadphones();
+}
+const vidCache = new Map();
+function getVid(stream, self) {
+  const key = stream.id + (self ? ':self' : '');
+  let v = vidCache.get(key);
+  if (!v) { v = el('video', { autoplay: true, playsInline: true, muted: !!self }); v.muted = !!self; v.setAttribute('playsinline', ''); v.srcObject = stream; vidCache.set(key, v); }
+  return v;
+}
+function mkTile(name, stream, o = {}) {
+  const t = el('div', { className: 'tile' }); const v = stream ? getVid(stream, !!o.self) : el('video', { autoplay: true, playsInline: true, muted: !!o.self }); if (!stream) v.setAttribute('playsinline', '');
+  if (stream && !o.self) { v.volume = S.remoteVol; v.play().catch(() => {}); }
+  if (o.self && !o.noMirror) v.style.transform = 'scaleX(-1)';
+  t.append(v);
+  if (!o.screen && (o.cam === false || !stream || !stream.getVideoTracks().length)) t.append(el('div', { className: 'av', textContent: (name || '?').slice(0, 1) }));
+  t.append(el('div', { className: 'nm', textContent: (o.screen ? '🖥 ' : '') + name + (o.self ? ' (me)' : '') }));
+  const st = [];
+  if (!o.screen) { if (o.mic === false) st.push('🔇'); if (o.hand) st.push('✋'); if (o.host) st.push('👑'); if (o.state && o.state !== 'connected') st.push('⏳'); }
+  if (st.length) t.append(el('div', { className: 'st', textContent: st.join('') }));
+  return t;
+}
+function peerStreams(pe) {
+  let cam = null, scr = null;
+  pe.streams.forEach((s, sid) => { if (sid === pe.screenSid) scr = s; else if (sid === pe.camSid || !cam) cam = s; });
+  return { cam, scr };
+}
+function renderAll() {
+  if (!S.inMeeting) return;
+  { const live = new Set(); if (S.local) live.add(S.local.id + ':self'); if (S.screen) live.add(S.screen.id + ':self'); S.peers.forEach((pe) => pe.streams.forEach((st) => live.add(st.id))); vidCache.forEach((v, k) => { if (!live.has(k)) { try { v.srcObject = null; } catch (e) {} vidCache.delete(k); } }); }
+  const grid = $('#grid'), focus = $('#focus'); grid.replaceChildren(); focus.replaceChildren();
+  const screens = [];
+  if (S.screen) screens.push(mkTile(S.name, S.screen, { screen: true, self: true, noMirror: true }));
+  S.peers.forEach((pe) => { const { scr } = peerStreams(pe); if (scr) screens.push(mkTile(pe.name, scr, { screen: true })); });
+  grid.append(mkTile(S.name, S.local, { self: true, mic: S.mic, cam: S.cam, hand: S.hand, host: S.host }));
+  S.peers.forEach((pe) => { const { cam } = peerStreams(pe); grid.append(mkTile(pe.name, cam, { mic: pe.mic, cam: pe.cam, hand: pe.hand, host: pe.host, state: pe.state })); });
+  const focusOn = screens.length && S.view === 'focus';
+  focus.classList.toggle('hidden', !focusOn); grid.classList.toggle('strip', !!focusOn);
+  if (focusOn) focus.append(screens[0]); else screens.forEach((s) => grid.append(s));
+  $('#btnView').textContent = 'View: ' + (S.view === 'focus' ? 'Screen first' : 'Gallery'); $('#mCount').textContent = '(' + (S.peers.size + 1) + ' in call)';
+  $('#bMic').className = S.mic ? '' : 'off'; $('#bMic').textContent = S.mic ? '🎤 Mic' : '🔇 Muted';
+  $('#bCam').className = S.cam ? '' : 'off'; $('#bCam').textContent = S.cam ? '📷 Camera' : '📷 Camera off';
+  Board.afterRender(screens[0] || null, !!screens.length);
+  $('#bShare').className = S.screen ? 'on' : ''; $('#bShare').textContent = S.screen ? '⏹ Stop sharing' : '🖥 Share screen'; $('#bHand').className = S.hand ? 'on' : '';
+  renderPpl();
+}
+$('#btnView').onclick = () => { S.view = S.view === 'focus' ? 'gallery' : 'focus'; renderAll(); };
+$('#btnSide').onclick = () => $('#side').classList.toggle('hidden');
+$('#btnCopy').onclick = async () => { const u = location.origin + location.pathname + '#/' + S.room; try { await navigator.clipboard.writeText(u); sysMsg('Meeting link copied; send it to the others: ' + u); } catch (e) { sysMsg('Please copy the link manually and send it to the others: ' + u); } };
+document.querySelectorAll('#tabs button').forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('on', x === b));
+    ['chat', 'ppl', 'rec', 'set'].forEach((p) => $('#p-' + p).classList.toggle('hidden', p !== b.dataset.p)); $('#chatbox').classList.toggle('hidden', b.dataset.p !== 'chat');
+  };
+});
+
+function addChat(name, text, ts, mine) { const p = $('#p-chat'); p.append(el('div', { className: 'msg' }, el('b', { textContent: (mine ? 'Me' : name) + ' ' }), el('i', { textContent: hhmmss(ts) }), el('div', { textContent: text }))); p.scrollTop = p.scrollHeight; }
+function sysMsg(t) { const p = $('#p-chat'); p.append(el('div', { className: 'msg sub', textContent: '· ' + t })); p.scrollTop = p.scrollHeight; }
+const doChat = () => { const v = $('#chatIn').value.trim(); if (!v) return; sendWs({ t: 'chat', text: v }); $('#chatIn').value = ''; };
+$('#chatSend').onclick = doChat; $('#chatIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') doChat(); });
+
+function renderPpl() {
+  const p = $('#p-ppl'); p.replaceChildren();
+  if (S.host && S.waiting.length) {
+    p.append(el('h2', { textContent: 'Waiting room' }));
+    S.waiting.forEach((w) => p.append(el('div', { className: 'card row' }, el('b', { textContent: w.name }), el('button', { className: 'pri', textContent: 'Admit', onclick: () => sendWs({ t: 'admit', id: w.id }) }), el('button', { textContent: 'Deny', onclick: () => sendWs({ t: 'deny', id: w.id }) }))));
+  }
+  p.append(el('h2', { textContent: 'In the meeting (' + (S.peers.size + 1) + ')' }));
+  p.append(el('div', { className: 'card', textContent: (S.host ? '👑 ' : '') + S.name + ' (me)' + (S.mic ? '' : ' 🔇') + (S.hand ? ' ✋' : '') }));
+  S.peers.forEach((pe) => {
+    const c = el('div', { className: 'card row' }, el('span', { textContent: (pe.host ? '👑 ' : '') + pe.name + (pe.mic ? '' : ' 🔇') + (pe.hand ? ' ✋' : '') + (pe.state === 'connected' ? '' : ' ⏳' + pe.state), style: 'flex:1' }));
+    if (S.host && !pe.host) c.append(el('button', { textContent: 'Mute', onclick: () => sendWs({ t: 'mute', id: pe.id }) }), el('button', { className: 'red', textContent: 'Remove', onclick: () => { if (confirm('Remove ' + pe.name + ' from the meeting?')) sendWs({ t: 'kick', id: pe.id }); } }));
+    p.append(c);
+  });
+  if (!S.host) p.append(el('div', { className: 'sub', textContent: 'Only the host can admit, mute, remove and lock.' }));
+}
+
+async function buildSettings() {
+  const p = $('#p-set'); p.replaceChildren(); let ds = []; try { ds = await navigator.mediaDevices.enumerateDevices(); } catch (e) {}
+  const mk = (label, kind) => { const sel = el('select'); ds.filter((d) => d.kind === kind).forEach((d, i) => sel.append(el('option', { value: d.deviceId, textContent: d.label || label + (i + 1) }))); sel.onchange = () => switchDev(kind, sel.value); return el('div', { className: 'card' }, el('div', { className: 'sub', textContent: label }), sel); };
+  p.append(mk('Camera', 'videoinput'), mk('Microphone', 'audioinput'), el('div', { className: 'sub', textContent: 'Switch devices during the meeting: what others see and hear switches to the new device automatically.' }), window.AppUpdate ? window.AppUpdate.card() : '');
+}
+async function switchDev(kind, id) {
+  try {
+    const ns = await navigator.mediaDevices.getUserMedia(kind === 'videoinput' ? { video: videoC(id) } : { audio: audioC(id) });
+    const nt = ns.getTracks()[0]; const old = (kind === 'videoinput' ? S.local.getVideoTracks() : S.local.getAudioTracks())[0];
+    nt.enabled = kind === 'videoinput' ? S.cam : S.mic;
+    S.peers.forEach((pe) => { if (!pe.pc) return; const s = old && pe.pc.getSenders().find((x) => x.track && x.track.id === old.id); if (s) s.replaceTrack(nt); else pe.pc.addTrack(nt, S.local); });
+    if (old) { S.local.removeTrack(old); old.stop(); } S.local.addTrack(nt); renderAll();
+  } catch (e) { sysMsg('Could not switch device: ' + e.message); }
+}
+
+$('#bMic').onclick = () => { S.mic = !S.mic; applyTracks(); sendWs({ t: 'state', mic: S.mic }); renderAll(); };
+$('#bCam').onclick = () => { S.cam = !S.cam; applyTracks(); sendWs({ t: 'state', cam: S.cam }); renderAll(); };
+$('#bHand').onclick = () => { S.hand = !S.hand; sendWs({ t: 'hand', on: S.hand }); renderAll(); };
+$('#bLock').onclick = () => sendWs({ t: 'lock', on: !S.locked });
+$('#bLeave').onclick = () => { sendWs({ t: 'leave' }); endMeeting('You left the meeting', ''); };
+['👍', '👏', '❤️', '😂', '😮', '🎉'].forEach((e) => $('#emo').append(el('button', { textContent: e, onclick: () => { sendWs({ t: 'react', emoji: e }); $('#emo').classList.add('hidden'); } })));
+$('#bEmo').onclick = () => $('#emo').classList.toggle('hidden');
+function floatEmoji(e) { const s = el('span', { textContent: e }); s.style.left = 10 + Math.random() * 80 + '%'; $('#float').append(s); setTimeout(() => s.remove(), 2600); }
+
+function applyHide(on) { document.body.classList.toggle('hidevid', on); $('#bHide').className = on ? 'off' : ''; $('#bHide').textContent = on ? '👁 Show video' : '🙈 Hide video'; try { localStorage.setItem('meet_hidevid', on ? '1' : '0'); } catch (e) {} }
+$('#bHide').onclick = () => applyHide(!document.body.classList.contains('hidevid'));
+try { if (localStorage.getItem('meet_hidevid') === '1') applyHide(true); } catch (e) {}
+$('#bShare').onclick = async () => {
+  if (S.screen) return stopShare();
+  try {
+    const s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false }); S.screen = s; s.getVideoTracks()[0].onended = stopShare;
+    S.peers.forEach((pe) => { if (pe.pc) s.getTracks().forEach((t) => pe.screenSenders.push(pe.pc.addTrack(t, s))); });
+    announce(); S.view = 'focus'; renderAll(); sysMsg('You started sharing your screen');
+  } catch (e) { sysMsg('Could not share the screen: ' + e.message); }
+};
+function stopShare() {
+  if (!S.screen) return;
+  S.screen.getTracks().forEach((t) => t.stop());
+  S.peers.forEach((pe) => { pe.screenSenders.forEach((sn) => { try { pe.pc.removeTrack(sn); } catch (e) {} }); pe.screenSenders = []; });
+  S.screen = null; announce(); renderAll();
+}
+
+function showCap(t) { $('#cap').classList.remove('hidden'); $('#capTxt').textContent = t; clearTimeout(showCap.t); showCap.t = setTimeout(() => $('#cap').classList.add('hidden'), 6000); }
+function updBanner(who) {
+  const b = $('#banner'); b.classList.remove('hidden'); b.textContent = '📝 ' + (S.capOn ? 'You are' : who + ' is') + ' transcribing the meeting: what is said is turned into text visible to everyone (download it on the Transcript tab)';
+  clearTimeout(updBanner.t); if (!S.capOn) updBanner.t = setTimeout(() => b.classList.add('hidden'), 20000);
+}
+$('#bCap').onclick = () => {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) { sysMsg('Live captions are not supported in this browser; use Chrome/Edge on a computer.'); return; }
+  if (S.capOn) { S.capOn = false; try { S.rec && S.rec.stop(); } catch (e) {} $('#bCap').textContent = '📝 Start captions'; $('#bCap').className = ''; $('#banner').classList.add('hidden'); sendWs({ t: 'chat', text: '📝 Turned off live captions' }); return; }
+  const lang = ($('#capLang') || {}).value || 'en-US';
+  S.capOn = true; $('#bCap').textContent = '⏹ Stop captions'; $('#bCap').className = 'on'; updBanner('You');
+  sendWs({ t: 'chat', text: '📝 Turned on live captions (language ' + lang + '): their own speech is turned into text, visible to everyone and added to the transcript' });
+  const run = () => {
+    if (!S.capOn) return; const r = new SR(); S.rec = r; r.lang = lang; r.continuous = true; r.interimResults = false;
+    r.onresult = (e) => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) { const text = e.results[i][0].transcript.trim(); if (!text) continue; S.transcript.push({ ts: Date.now(), name: S.name, text }); sendWs({ t: 'cap', text, lang }); showCap(S.name + ': ' + text); renderRec(); } };
+    r.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { S.capOn = false; $('#bCap').textContent = '📝 Start captions'; $('#bCap').className = ''; sysMsg('Captions not permitted: ' + e.error); } };
+    r.onend = () => { if (S.capOn) setTimeout(run, 300); }; try { r.start(); } catch (e) {}
+  }; run();
+};
+function renderRec() {
+  const p = $('#p-rec'); const prev = $('#capLang') ? $('#capLang').value : 'en-US'; p.replaceChildren();
+  const lang = el('select', { id: 'capLang' }); [['zh-CN', 'Chinese'], ['ja-JP', 'Japanese'], ['en-US', 'English']].forEach(([v, t]) => lang.append(el('option', { value: v, textContent: t }))); lang.value = prev;
+  p.append(el('div', { className: 'card' }, el('div', { className: 'sub', textContent: 'Caption language (choose before starting)' }), lang, el('div', { className: 'sub warn', style: 'margin-top:6px', textContent: '⚠ When on: what you say is converted to text by the browser speech recognition (Chrome sends it to Google), shared with everyone in the meeting and added to the transcript. Everyone only transcribes their own speech.' })));
+  p.append(el('button', { className: 'pri', textContent: '⬇ Download transcript (md)', onclick: dlMd, style: 'margin:6px 0' }));
+  S.transcript.slice(-200).forEach((x) => p.append(el('div', { className: 'msg' }, el('i', { textContent: hhmmss(x.ts) + ' ' }), el('b', { textContent: x.name + ': ' }), x.text)));
+  if (!S.transcript.length) p.append(el('div', { className: 'sub', textContent: 'No transcript yet. Once someone starts captions, text with names and times appears here.' }));
+}
+function mdText() {
+  const lines = S.transcript.map((x) => '- [' + hhmmss(x.ts) + '] **' + x.name + '**: ' + x.text);
+  return '# Meeting transcript ' + S.room + '\n\nExported: ' + new Date().toLocaleString('en-US') + '\n\nNote: only includes what participants who turned on captions said themselves; generated by browser speech recognition and may contain errors.\n\n' + (lines.join('\n') || '(no transcript)') + '\n';
+}
+function dlMd() { const a = el('a', { href: URL.createObjectURL(new Blob([mdText()], { type: 'text/markdown' })), download: 'meeting-transcript_' + S.room + '.md' }); document.body.append(a); a.click(); a.remove(); }
+
+function stopLocal() { S.guard = false; echoGate = false; lSrc = null; lAn = null; rAn.clear(); hist.length = 0; vidCache.clear(); S.capOn = false; try { S.rec && S.rec.stop(); } catch (e) {} stopShare(); if (S.local) S.local.getTracks().forEach((t) => t.stop()); S.peers.forEach(closePeer); S.peers.clear(); }
+function endMeeting(title, msg) {
+  const had = S.transcript.length; const ws = S.ws; S.ws = null; S.inMeeting = false; stopLocal(); try { ws && ws.close(); } catch (e) {} S.local = null;
+  show('end'); $('#endTitle').textContent = title; $('#endMsg').textContent = msg || 'The transcript only lives in your browser and is lost when you close the page; download it now if you need it.'; $('#endDl').classList.toggle('hidden', !had);
+}
+$('#endDl').onclick = dlMd;
+$('#endHome').onclick = () => { S.transcript = []; S.peers.clear(); S.hand = false; S.mic = S.cam = true; if (location.hash) location.hash = ''; show('home'); };
+$('#waitCancel').onclick = () => { const ws = S.ws; S.ws = null; try { ws.close(); } catch (e) {} stopLocal(); S.local = null; if (location.hash) location.hash = ''; show('home'); };
+addEventListener('beforeunload', () => { if (S.inMeeting) sendWs({ t: 'leave' }); });
+route();
+
+const Board = (() => {
+  const L = { wb: [], ann: [] }, COLORS = ['#222222', '#e53935', '#1e88e5', '#43a047', '#fb8c00', '#ffffff'];
+  const tool = { c: COLORS[1], w: 4 };
+  let wbOpen = false, annOn = false, annCv = null, annVideo = null, wbCv = null, wbWrap = null, annBar = null;
+  const newSid = () => (S.id || 'x') + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const mkTools = (layer) => {
+    const bar = el('div', { className: 'dtools' });
+    COLORS.forEach((c) => { const b = el('button', { className: 'sw' + (c === tool.c ? ' on' : ''), title: 'Color' }); b.dataset.c = c; b.style.background = c; b.onclick = () => { tool.c = c; document.querySelectorAll('.dtools .sw').forEach((x) => x.classList.toggle('on', x.dataset.c === c)); }; bar.append(b); });
+    const w = el('input', { type: 'range', min: 2, max: 16, value: tool.w, title: 'Width', style: 'width:80px' }); w.oninput = () => { tool.w = +w.value; };
+    const undo = el('button', { textContent: '↩ Undo my last stroke' }), clr = el('button', { textContent: '🗑 Clear' }), close = el('button', { textContent: layer === 'wb' ? '✕ Close whiteboard' : '✕ End annotation' });
+    undo.onclick = () => { const mine = L[layer].filter((s) => s.from === S.id); const last = mine[mine.length - 1]; if (!last) return; L[layer] = L[layer].filter((s) => s !== last); redraw(layer); sendWs({ t: 'draw', layer, op: 'undo', sid: last.sid }); };
+    clr.onclick = () => { if (!confirm('Clear what everyone sees on the ' + (layer === 'wb' ? 'whiteboard' : 'annotations') + '?')) return; L[layer] = []; redraw(layer); sendWs({ t: 'draw', layer, op: 'clear' }); };
+    close.onclick = () => (layer === 'wb' ? toggleWb(false) : toggleAnn(false));
+    bar.append(w, undo, clr, close); return bar;
+  };
+  const rectOf = (layer) => {
+    const cv = layer === 'wb' ? wbCv : annCv; if (!cv) return null; const W = cv.width, H = cv.height;
+    if (layer === 'wb' || !annVideo || !annVideo.videoWidth) return { ox: 0, oy: 0, cw: W, ch: H };
+    const k = Math.min(W / annVideo.videoWidth, H / annVideo.videoHeight), cw = annVideo.videoWidth * k, ch = annVideo.videoHeight * k;
+    return { ox: (W - cw) / 2, oy: (H - ch) / 2, cw, ch };
+  };
+  function fit(cv) { const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1, w = Math.round(r.width * d), h = Math.round(r.height * d); if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; } }
+  function redraw(layer) {
+    const cv = layer === 'wb' ? wbCv : annCv; if (!cv) return; fit(cv); const g = cv.getContext('2d'), R = rectOf(layer); g.clearRect(0, 0, cv.width, cv.height); g.lineCap = 'round'; g.lineJoin = 'round';
+    const d = window.devicePixelRatio || 1;
+    L[layer].forEach((s) => {
+      if (!s.pts.length) return; g.strokeStyle = s.c; g.fillStyle = s.c; g.lineWidth = s.w * d; g.beginPath();
+      s.pts.forEach(([x, y], i) => { const px = R.ox + x * R.cw, py = R.oy + y * R.ch; if (i) g.lineTo(px, py); else g.moveTo(px, py); });
+      if (s.pts.length === 1) { const [x, y] = s.pts[0]; g.arc(R.ox + x * R.cw, R.oy + y * R.ch, s.w * d / 2, 0, 7); g.fill(); } else g.stroke();
+    });
+  }
+  function bind(cv, layer) {
+    let cur = null, buf = [], t0 = 0;
+    const pt = (e) => { const r = cv.getBoundingClientRect(), d = cv.width / r.width, R = rectOf(layer); return [Math.max(0, Math.min(1, ((e.clientX - r.left) * d - R.ox) / R.cw)), Math.max(0, Math.min(1, ((e.clientY - r.top) * d - R.oy) / R.ch))]; };
+    const flush = () => { if (!cur || !buf.length) return; sendWs({ t: 'draw', layer, op: 'seg', sid: cur.sid, c: cur.c, w: cur.w, pts: buf.splice(0, 60) }); };
+    cv.addEventListener('pointerdown', (e) => { e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (x) {} const p = pt(e); cur = { sid: newSid(), c: tool.c, w: tool.w, pts: [p], from: S.id }; L[layer].push(cur); buf = [p]; t0 = Date.now(); redraw(layer); flush(); });
+    cv.addEventListener('pointermove', (e) => { if (!cur) return; const p = pt(e); cur.pts.push(p); buf.push(p); redraw(layer); if (buf.length >= 6 || Date.now() - t0 > 80) { t0 = Date.now(); flush(); } });
+    const end = () => { if (!cur) return; flush(); cur = null; };
+    cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  }
+  function ensureWb() {
+    if (wbWrap) return; wbCv = el('canvas'); wbWrap = el('div', { id: 'wbWrap', className: 'hidden' }, mkTools('wb'), wbCv); $('#stage').append(wbWrap); bind(wbCv, 'wb');
+    new ResizeObserver(() => redraw('wb')).observe(wbCv);
+  }
+  function toggleWb(on) {
+    ensureWb(); wbOpen = on === undefined ? !wbOpen : on; wbWrap.classList.toggle('hidden', !wbOpen);
+    $('#bWb').className = wbOpen ? 'on' : ''; $('#bWb').textContent = wbOpen ? '📋 Close whiteboard' : '📋 Whiteboard'; if (wbOpen) setTimeout(() => redraw('wb'), 30);
+  }
+  function toggleAnn(on) {
+    annOn = on === undefined ? !annOn : on;
+    if (annOn && !annCv) { sysMsg('Nobody is sharing a screen, so there is nothing to annotate'); annOn = false; }
+    if (annCv) annCv.classList.toggle('on', annOn);
+    if (annBar) { annBar.remove(); annBar = null; }
+    if (annOn) { annBar = mkTools('ann'); annBar.id = 'annBar'; $('#stage').append(annBar); }
+    $('#bAnn').className = annOn ? 'on' : ''; $('#bAnn').textContent = annOn ? '✏ Annotating (click to stop)' : '✏ Annotate shared screen';
+  }
+  function afterRender(tile, hasShare) {
+    $('#bAnn').classList.toggle('hidden', !hasShare);
+    if (!hasShare) { if (annOn) toggleAnn(false); L.ann = []; annCv = null; annVideo = null; return; }
+    annVideo = tile.querySelector('video'); annCv = el('canvas', { className: 'annCv' + (annOn ? ' on' : '') }); tile.append(annCv); bind(annCv, 'ann');
+    new ResizeObserver(() => redraw('ann')).observe(annCv); if (annVideo) annVideo.addEventListener('loadedmetadata', () => redraw('ann')); setTimeout(() => redraw('ann'), 30);
+  }
+  function recv(m) {
+    const layer = m.layer === 'ann' ? 'ann' : 'wb';
+    if (m.op === 'clear') L[layer] = []; else if (m.op === 'undo') L[layer] = L[layer].filter((s) => s.sid !== m.sid);
+    else { let s = L[layer].find((x) => x.sid === m.sid); if (!s) { s = { sid: m.sid, c: m.c, w: m.w, pts: [], from: m.from }; L[layer].push(s); } s.pts.push(...(m.pts || [])); }
+    if (layer === 'wb' && !wbOpen && m.op === 'seg') { toggleWb(true); sysMsg(((S.peers.get(m.from) || {}).name || 'The other person') + ' is writing on the whiteboard; it was opened for you'); }
+    redraw(layer);
+  }
+  function sync(strokes) { L.wb = strokes.map((s) => ({ ...s, from: '?' })); redraw('wb'); }
+  $('#bFile').onclick = () => window.FileXfer && window.FileXfer.pick(S.peers); $('#bWb').onclick = () => toggleWb(); $('#bAnn').onclick = () => toggleAnn();
+  return { recv, sync, afterRender };
+})();
+
+{ const h = $('#home'); if (h && window.AppUpdate) h.append(window.AppUpdate.card()); }
+
+(function () {
+  const b = el('button', { id: 'bRemote', textContent: '🖱 Remote help' });
+  $('#bAnn').after(b);
+  b.onclick = () => {
+    if ($('#remoteModal')) return;
+    const lk = (u, t) => el('a', { href: u, target: '_blank', rel: 'noopener', textContent: t, style: 'color:#8fb8ff' });
+    const m = el('div', { id: 'remoteModal', style: 'position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px' },
+      el('div', { className: 'card', style: 'max-width:460px;width:100%;max-height:90vh;overflow:auto' },
+        el('h2', { textContent: '🖱 Want the other person to control your computer (or you to control theirs)?' }),
+        el('div', { className: 'sub', textContent: 'Honest note: a web video meeting has no "control the other computer" permission. That is a browser limit, not something we skipped. Here are free ready-made options; keep the meeting open and chat:' }),
+        el('div', { style: 'margin-top:8px' }, el('b', { textContent: 'Option A: Chrome Remote Desktop (Google, free, both use Chrome)' })),
+        el('div', {}, '1. The side being controlled: open ', lk('https://remotedesktop.google.com/support', 'remotedesktop.google.com/support'), ', click "Generate code" and send the 12-digit code in this meeting chat.'),
+        el('div', {}, '2. The controlling side: open the same address and enter the code under "Connect to another computer".'),
+        el('div', {}, '3. The controlled side clicks "Share" to agree; click "Stop sharing" when finished.'),
+        el('div', { style: 'margin-top:8px' }, el('b', { textContent: 'Option B: RustDesk (open source, free, needs a small app)' })),
+        el('div', {}, 'Go to ', lk('https://rustdesk.com', 'rustdesk.com'), ' to download and install it; send the ID and temporary password shown in the app to the other person, who enters them to connect.'),
+        el('div', { className: 'sub', style: 'margin-top:8px', textContent: 'Safety reminder: only give the code/password to people you trust; stop sharing when done; do not log in to banking or similar accounts while someone else is controlling the computer.' }),
+        el('button', { textContent: 'Close', style: 'margin-top:10px;width:100%', onclick: () => m.remove() })));
+    m.addEventListener('click', (e) => { if (e.target === m) m.remove(); }); document.body.append(m);
+  };
+})();
+</script>
+</body>
+</html>

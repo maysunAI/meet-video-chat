@@ -1,0 +1,14 @@
+{
+  "name": "meet-video-chat",
+  "version": "0.1.0",
+  "description": "Login-free video meetings: WebRTC P2P mesh (up to 4 people) with a tiny WebSocket signalling server",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.0",
+    "ws": "^8.18.0"
+  }
+}
