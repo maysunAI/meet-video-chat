@@ -21,7 +21,7 @@ input,select{background:#0d1218;border:1px solid var(--line);border-radius:8px;p
 a{color:#7cc4ff}
 .page{max-width:560px;margin:0 auto;padding:24px 16px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
-h1{font-size:1.4rem;margin:8px 0}h2{font-size:1.1rem;margin:0 0 8px}
+h1,h2.h1like{font-size:1.4rem;margin:8px 0}h2{font-size:1.1rem;margin:0 0 8px}
 .sub{color:var(--sub);font-size:.9rem}
 .warn{color:#ffb454}
 video{background:#000;width:100%;border-radius:10px;display:block}
@@ -67,6 +67,7 @@ video{background:#000;width:100%;border-radius:10px;display:block}
 .annCv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;pointer-events:none;z-index:2}
 .annCv.on{pointer-events:auto;cursor:crosshair}
 </style>
+<link rel="stylesheet" href="/home.css?v=2">
 </head>
 <body>
 
@@ -84,8 +85,20 @@ video{background:#000;width:100%;border-radius:10px;display:block}
   <div class="card sub">⚠️ Honest note: browsers first try to connect directly (public STUN); if that fails, this site automatically falls back to a TURN relay. A few networks (corporate firewalls, some mobile data / symmetric NAT, connections between countries) may still fail, and then you cannot see the other person. Phone browsers can mostly not share the screen, they can only watch.</div>
 </div>
 
+<div id="intro">
+  <h2>Everything a meeting needs, in one place</h2>
+  <p class="sub">People who join need no install and no sign-up: just open the link.</p>
+  <div class="ig">
+    <div class="ic"><div class="ico">🔗</div><h3>🔗 One-click link</h3><p>Create a meeting, copy the link and send it; the other person just opens it.</p></div>
+    <div class="ic"><div class="ico">🖥️</div><h3>🖥️ Screen sharing</h3><p>On a computer you can share your screen or one window and others see it instantly.</p></div>
+    <div class="ic"><div class="ico">📋</div><h3>📋 Whiteboard and annotation</h3><p>Draw together on a whiteboard, or mark up a shared screen.</p></div>
+    <div class="ic"><div class="ico">📁</div><h3>📁 Send files</h3><p>Files go straight between browsers, never through the server.</p></div>
+    <div class="ic"><div class="ico">📝</div><h3>📝 Meeting notes</h3><p>What people say can be written down and downloaded afterwards (needs a browser with speech recognition).</p></div>
+    <div class="ic"><div class="ico">🔒</div><h3>🔒 Direct browser connection</h3><p>Video and audio go directly between browsers first; a relay is used only when that fails.</p></div>
+  </div>
+</div>
 <div id="pre" class="page hidden">
-  <h1>Ready to join</h1>
+  <h2 class="h1like">Ready to join</h2>
   <div class="card"><video id="preVideo" autoplay muted playsinline></video>
     <div id="preMsg" class="sub warn" style="margin-top:6px"></div>
     <div style="margin-top:8px"><div class="sub">Nickname</div><input id="nick" maxlength="20" placeholder="Your name"></div>
@@ -96,9 +109,9 @@ video{background:#000;width:100%;border-radius:10px;display:block}
   <div id="roomInfo" class="sub" style="margin-top:8px"></div>
 </div>
 
-<div id="wait" class="page hidden"><h1>Waiting for the host to let you in…</h1><div class="card" id="waitMsg">The host has been notified. Please wait; you will enter automatically once admitted.</div><button id="waitCancel">Cancel</button></div>
+<div id="wait" class="page hidden"><h2 class="h1like">Waiting for the host to let you in…</h2><div class="card" id="waitMsg">The host has been notified. Please wait; you will enter automatically once admitted.</div><button id="waitCancel">Cancel</button></div>
 
-<div id="end" class="page hidden"><h1 id="endTitle">You left the meeting</h1><div class="card"><div id="endMsg" class="sub"></div>
+<div id="end" class="page hidden"><h2 class="h1like" id="endTitle">You left the meeting</h2><div class="card"><div id="endMsg" class="sub"></div>
   <div class="row" style="margin-top:8px"><button id="endDl" class="pri hidden">⬇ Download transcript (md)</button><button id="endHome">Back to home</button></div></div></div>
 
 <div id="meet" class="hidden">
@@ -118,7 +131,7 @@ video{background:#000;width:100%;border-radius:10px;display:block}
   </div>
   <div id="bar">
     <button id="bMic">🎤 Mic</button><button id="bCam">📷 Camera</button><button id="bShare">🖥 Share screen</button><button id="bHide">🙈 Hide video</button><button id="bEcho">🔇 Echo?</button>
-    <button id="bHand">✋ Raise hand</button><button id="bEmo">😀 Emoji</button><button id="bCap">📝 Start captions</button><button id="bWb">📋 Whiteboard</button><button id="bFile">📎 Send file</button><button id="bAnn" class="hidden">✏ Annotate shared screen</button>
+    <button id="bHand">✋ Raise hand</button><button id="bEmo">😀 Emoji</button><button id="bCap">📝 Start captions</button><button id="bWb">📋 Whiteboard</button><button id="bFile">📎 Send file</button><button id="bRec">⏺ Record</button><button id="bAnn" class="hidden">✏ Annotate shared screen</button>
     <button id="bLock" class="hidden">🔒 Lock meeting</button><button id="bLeave" class="red">Leave</button>
     <div id="emo" class="hidden"></div>
   </div>
@@ -469,6 +482,30 @@ function stopShare() {
   S.screen = null; announce(); renderAll();
 }
 
+
+let recSt = null;
+$('#bRec').onclick = async () => {
+  if (recSt) { try { recSt.mr.stop(); } catch (e) {} return; }
+  if (!window.MediaRecorder) { sysMsg('This browser cannot record. Please use Chrome or Edge on a computer.'); return; }
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)(); const dest = ac.createMediaStreamDestination();
+    const addA = (st) => { if (st && st.getAudioTracks().length) { try { ac.createMediaStreamSource(new MediaStream(st.getAudioTracks())).connect(dest); } catch (e) {} } };
+    addA(S.local); let vt = null;
+    S.peers.forEach((pe) => { pe.streams.forEach((st) => { addA(st); if (!vt && st.getVideoTracks().length) vt = st.getVideoTracks()[0]; }); });
+    if (S.screen && S.screen.getVideoTracks()[0]) vt = S.screen.getVideoTracks()[0];
+    const tracks = dest.stream.getAudioTracks().concat(vt ? [vt] : []);
+    const mr = new MediaRecorder(new MediaStream(tracks)); const chunks = [];
+    mr.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    mr.onstop = () => {
+      const blob = new Blob(chunks, { type: mr.mimeType || 'video/webm' }); const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'meeting-' + S.room + '-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '') + '.webm'; document.body.append(a); a.click(); a.remove();
+      try { ac.close(); } catch (e) {} recSt = null; $('#bRec').textContent = '⏺ Record'; $('#bRec').className = ''; sendWs({ t: 'chat', text: '⏹ Stopped recording' }); sysMsg('Recording saved to your Downloads folder (only on your own computer).');
+    };
+    mr.start(1000); recSt = { mr }; $('#bRec').textContent = '⏹ Stop recording'; $('#bRec').className = 'on';
+    sendWs({ t: 'chat', text: '⏺ Started recording the meeting (audio and video, saved only on the recorder own computer)' });
+  } catch (e) { sysMsg('Recording failed: ' + e.message); }
+};
+
 function showCap(t) { $('#cap').classList.remove('hidden'); $('#capTxt').textContent = t; clearTimeout(showCap.t); showCap.t = setTimeout(() => $('#cap').classList.add('hidden'), 6000); }
 function updBanner(who) {
   const b = $('#banner'); b.classList.remove('hidden'); b.textContent = '📝 ' + (S.capOn ? 'You are' : who + ' is') + ' transcribing the meeting: what is said is turned into text visible to everyone (download it on the Transcript tab)';
@@ -501,7 +538,7 @@ function mdText() {
 }
 function dlMd() { const a = el('a', { href: URL.createObjectURL(new Blob([mdText()], { type: 'text/markdown' })), download: 'meeting-transcript_' + S.room + '.md' }); document.body.append(a); a.click(); a.remove(); }
 
-function stopLocal() { S.guard = false; echoGate = false; lSrc = null; lAn = null; rAn.clear(); hist.length = 0; vidCache.clear(); S.capOn = false; try { S.rec && S.rec.stop(); } catch (e) {} stopShare(); if (S.local) S.local.getTracks().forEach((t) => t.stop()); S.peers.forEach(closePeer); S.peers.clear(); }
+function stopLocal() { S.guard = false; echoGate = false; lSrc = null; lAn = null; rAn.clear(); hist.length = 0; vidCache.clear(); S.capOn = false; try { S.rec && S.rec.stop(); } catch (e) {} try { recSt && recSt.mr.stop(); } catch (e) {} stopShare(); if (S.local) S.local.getTracks().forEach((t) => t.stop()); S.peers.forEach(closePeer); S.peers.clear(); }
 function endMeeting(title, msg) {
   const had = S.transcript.length; const ws = S.ws; S.ws = null; S.inMeeting = false; stopLocal(); try { ws && ws.close(); } catch (e) {} S.local = null;
   show('end'); $('#endTitle').textContent = title; $('#endMsg').textContent = msg || 'The transcript only lives in your browser and is lost when you close the page; download it now if you need it.'; $('#endDl').classList.toggle('hidden', !had);
